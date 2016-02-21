@@ -158,7 +158,7 @@ class Pacman(GameObject):
 
         self.set_coord(self.x, self.y)
 
-        if isinstance(MAP.map[int(self.y)][int(self.x)], Food):
+        if isinstance(MAP.map[int(self.y)][int(self.x)], Food):  # checking meeting pacman with objects
             MAP.map[int(self.y)][int(self.x)] = None
         if isinstance(MAP.map[int(self.y)][int(self.x)], Bonus):
             MAP.map[int(self.y)][int(self.x)] = None
