@@ -53,7 +53,7 @@ class Ghost(GameObject):
         self.velocity = 4.0 / 10.0
 
     def Intellect(self):
-        x , y = self.x, self.y
+        x , y = int(self.x), int(self.y)
         if y == int(pacman.y):
             for X in range(x, 16):
                 if isinstance(MAP.map[y][X], Wall): break
@@ -193,7 +193,7 @@ class Wall(GameObject):
         super(Wall, self).game_tick()
 
 def create_walls(coords):
-    Wall.w = [Wall(1,3)]
+    Wall.w = [Wall(2,4)]
 
 def is_wall(x, y):
     return isinstance(MAP.map[int(y)][int(x)], Wall)
@@ -201,20 +201,6 @@ def is_wall(x, y):
 def draw_walls(screen):
     for w in Wall.w:
         GameObject.draw(w,screen)
-
-class Korobka(GameObject):
-    korobka = []
-    def __init__(self, x, y):
-        GameObject.__init__(self,'./resources/spawner.png', x, y)
-        Korobka.korobka.append(self)
-    def game_tick(self):
-        difficulty_parameter = 0.05
-        delta = (Ghost.num - len(Ghost.ghosts)) * 1.0 / Ghost.num
-        prob = delta * difficulty_parameter
-        create = random.randint(0, 100) < 100 * prob
-        if create:
-            Ghost.ghosts.append(Ghost(self.x, self.y))
-
 
 class Bonus(GameObject):
     def __init__(self, x, y):
@@ -249,8 +235,8 @@ class Map:
                         self.map[-1].append(BadBonus(x, y))
                     elif txt[y][x] == "&":
                         self.map[-1].append(EatBonus(x, y))
-                    elif txt[y][x] == "S":
-                        self.map[-1].append(Korobka(x, y))
+                    elif txt[y][x] == "G":
+                        Ghost.ghosts.append(Ghost(x ,y))
                     else:
                         self.map[-1].append(None)
         def draw(self, screen):
@@ -293,8 +279,6 @@ if __name__ == '__main__':
         process_events(pygame.event.get(), pacman)
         pygame.time.delay(50)
         tick_ghosts()
-        for spawner in Korobka.korobka:
-            spawner.game_tick()
         pacman.game_tick()
         draw_background(screen, background)
         pacman.draw(screen)
