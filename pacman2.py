@@ -207,9 +207,6 @@ class Bonus(GameObject):
         GameObject.__init__(self,'./resources/bonus.png', x, y)
 
 
-class BadBonus(GameObject):
-    def __init__(self, x, y):
-        GameObject.__init__(self,'./resources/death.png', x, y)
 
 class EatBonus(GameObject):
     eat_bonus = None
@@ -231,8 +228,6 @@ class Map:
                         self.map[-1].append(Food(x, y))
                     elif txt[y][x] == "+":
                         self.map[-1].append(Bonus(x, y))
-                    elif txt[y][x] == "-":
-                        self.map[-1].append(BadBonus(x, y))
                     elif txt[y][x] == "&":
                         self.map[-1].append(EatBonus(x, y))
                     elif txt[y][x] == "G":
