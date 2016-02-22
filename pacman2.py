@@ -4,8 +4,7 @@ from pygame.locals import *
 from math import floor
 import random
 tile_Size = 32
-map_Size = 18
-
+map_Size = 16
 
 def init_window():   #Generating the window
     pygame.init()
@@ -46,7 +45,6 @@ class GameObject(pygame.sprite.Sprite):
 
 class Ghost(GameObject):
     ghosts = []  #massiv of ghosts
-    num = 4
     def __init__(self, x, y):
         GameObject.__init__(self, './resources/ghost.png', x, y)
         self.direction = 0
@@ -108,6 +106,11 @@ class Ghost(GameObject):
                 self.direction = random.randint(1, 4)
          if floor(pacman.x) == floor(self.x) and floor(pacman.y) == floor(self.y)  and EatBonus.eat_bonus:
               Ghost.ghosts.remove(self)
+
+              pacman.score = +2
+         elif  floor(pacman.x) == floor(self.x) and floor(pacman.y) == floor(self.y):
+              print('LOOSER! Your score is ', str(pacman.score))
+              exit()
          self.set_coord(self.x, self.y)
 
 
@@ -116,6 +119,7 @@ class Pacman(GameObject):
         GameObject.__init__(self, './resources/pacman.png', x, y)
         self.direction = 0
         self.velocity = 4.0 / 10.0
+        self.score = 0
 
     def __get_direction(self):
         return self.__direction;
@@ -152,7 +156,12 @@ class Pacman(GameObject):
                 self.x = 0
         elif self.direction == 4:
             if not is_wall(self.x, floor(self.y-self.velocity)):
-                self.y -= self.velocity
+                if EatBonus.eat_bonus == 1:
+                    self.y -= self.velocity/(2.5)
+                else:
+                    self.y -= self.velocity
+            #else:
+            #    print('cant go up')
             if self.y <= 0:
                 self.y = 0
 
@@ -160,12 +169,10 @@ class Pacman(GameObject):
 
         if isinstance(MAP.map[int(self.y)][int(self.x)], Food):  # checking meeting pacman with objects
             MAP.map[int(self.y)][int(self.x)] = None
+            self.score += 1
         if isinstance(MAP.map[int(self.y)][int(self.x)], Bonus):
             MAP.map[int(self.y)][int(self.x)] = None
             pacman.velocity = 10.0/10.0
-        if isinstance(MAP.map[int(self.y)][int(self.x)], BadBonus):
-            MAP.map[int(self.y)][int(self.x)] = None
-            Ghost.num = 10
         if isinstance(MAP.map[int(self.y)][int(self.x)], EatBonus)  == True:
             MAP.map[int(self.y)][int(self.x)] = None
             EatBonus.eat_bonus = 1
@@ -219,9 +226,9 @@ class Map:
             f=open(filename, 'r')
             txt = f.readlines()
             f.close()
-            for y in range(len(txt)):
+            for y in range((map_Size)):
                 self.map.append([])
-                for x in range(len(txt[y])):
+                for x in range((map_Size)):
                     if '#' in txt[y][x]:
                         self.map[-1].append(Wall(x, y))  #Filling the map according to the symbols in file
                     elif '.' in txt[y][x]:
@@ -266,7 +273,7 @@ if __name__ == '__main__':
 
     global MAP
     MAP = Map('map.txt')
-    pacman = Pacman(5, 5)
+    pacman = Pacman(13, 5)
     background = pygame.image.load("./resources/background1.png")
     screen = pygame.display.get_surface()
 
