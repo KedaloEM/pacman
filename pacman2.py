@@ -43,12 +43,13 @@ class GameObject(pygame.sprite.Sprite):
         scr.blit(self.image, (self.screen_rect.x, self.screen_rect.y))
 
 
+
 class Ghost(GameObject):
     ghosts = []  #massiv of ghosts
     def __init__(self, x, y):
         GameObject.__init__(self, './resources/ghost.png', x, y)
         self.direction = 0
-        self.velocity = 4.0 / 10.0
+        self.velocity = 3.5 / 10.0
 
     def Intellect(self):
         x , y = int(self.x), int(self.y)
@@ -107,14 +108,15 @@ class Ghost(GameObject):
          if floor(pacman.x) == floor(self.x) and floor(pacman.y) == floor(self.y)  and EatBonus.eat_bonus:
               Ghost.ghosts.remove(self)
 
-              pacman.score = +2
+              pacman.score +=2
          elif  floor(pacman.x) == floor(self.x) and floor(pacman.y) == floor(self.y):
-              print('LOOSER! Your score is ', str(pacman.score))
+              print('You lose! Your score is ', str(pacman.score))
               exit()
          self.set_coord(self.x, self.y)
 
 
 class Pacman(GameObject):
+
     def __init__(self, x, y):
         GameObject.__init__(self, './resources/pacman.png', x, y)
         self.direction = 0
@@ -122,7 +124,8 @@ class Pacman(GameObject):
         self.score = 0
 
     def __get_direction(self):
-        return self.__direction;
+        return self.__direction
+
     def __set_direction(self, d):
         self.__direction = d
         if d == 1:
@@ -136,6 +139,7 @@ class Pacman(GameObject):
         elif d != 0:
             raise ValueError("invalid direction detected")
     direction = property(__get_direction, __set_direction)
+
 
     def game_tick(self):
         super(Pacman, self).game_tick()
@@ -156,12 +160,7 @@ class Pacman(GameObject):
                 self.x = 0
         elif self.direction == 4:
             if not is_wall(self.x, floor(self.y-self.velocity)):
-                if EatBonus.eat_bonus == 1:
-                    self.y -= self.velocity/(2.5)
-                else:
-                    self.y -= self.velocity
-            #else:
-            #    print('cant go up')
+                self.y -= self.velocity
             if self.y <= 0:
                 self.y = 0
 
@@ -170,44 +169,87 @@ class Pacman(GameObject):
         if isinstance(MAP.map[int(self.y)][int(self.x)], Food):  # checking meeting pacman with objects
             MAP.map[int(self.y)][int(self.x)] = None
             self.score += 1
+            Food.num-=1
+            if Food.num == 0:
+                print('WINNER Score:',str(pacman.score))
+                exit()
+
         if isinstance(MAP.map[int(self.y)][int(self.x)], Bonus):
             MAP.map[int(self.y)][int(self.x)] = None
-            pacman.velocity = 10.0/10.0
+            pacman.velocity = 6.5/10.0
         if isinstance(MAP.map[int(self.y)][int(self.x)], EatBonus)  == True:
             MAP.map[int(self.y)][int(self.x)] = None
             EatBonus.eat_bonus = 1
+        if isinstance(MAP.map[int(self.y)][int(self.x)], eatable_wall)  == True:
+            MAP.map[int(self.y)][int(self.x)] = None
+            if eatable_wall.isfood == 1:
+                MAP.map[-1].append(Food(self.x, self.y))
+                Food.append(self.x,self.y)
+
+
+
 
 def draw_ghosts(screen):
     for g in Ghost.ghosts:
         g.draw(screen)
+
 
 def tick_ghosts():
     for g in Ghost.ghosts:
         g.game_tick()
 
 
+class eatable_wall(GameObject):
+    isfood = 0
+    def __init__(self, x, y):
+        GameObject.__init__(self, './resources/wall.png', x, y)
+
+    def game_tick(self):
+        super(eatable_wall,self).game_tick()
+
+def create_eatable_walls(coords):
+    eatable_wall.w = [eatable_wall(1,1)]
+
+
+class Wall(GameObject):
+
+    def __init__(self, x, y):
+        GameObject.__init__(self, './resources/wall.png', x, y)
+
+    def game_tick(self):
+        super(Wall, self).game_tick()
+
+
+
+def create_walls(coords):
+    eatable_wall.w = [eatable_wall(1,1)]
+
+def draw_eatable_walls(screen):
+    for w in eatable_wall.w:
+        GameObject.draw(w,screen)
+
+
+
+
+def is_wall(x, y):
+    return isinstance(MAP.map[int(y)][int(x)], Wall)
+
+
+def draw_walls(screen):
+    for w in Wall.w:
+        GameObject.draw(w,screen)
+
+
 class Food(GameObject):
+    num = 0
     def __init__(self, x, y):
         GameObject.__init__(self,'./resources/food.png', x, y)
 
 
 
 
-class Wall(GameObject):
-    def __init__(self, x, y):
-        GameObject.__init__(self, './resources/wall.png', x, y)
-    def game_tick(self):
-        super(Wall, self).game_tick()
 
-def create_walls(coords):
-    Wall.w = [Wall(2,4)]
 
-def is_wall(x, y):
-    return isinstance(MAP.map[int(y)][int(x)], Wall)
-
-def draw_walls(screen):
-    for w in Wall.w:
-        GameObject.draw(w,screen)
 
 class Bonus(GameObject):
     def __init__(self, x, y):
@@ -219,6 +261,7 @@ class EatBonus(GameObject):
     eat_bonus = None
     def __init__(self, x, y):
         GameObject.__init__(self, './resources/eat.png', x, y)
+
 
 class Map:
         def __init__(self, filename):
@@ -233,12 +276,19 @@ class Map:
                         self.map[-1].append(Wall(x, y))  #Filling the map according to the symbols in file
                     elif '.' in txt[y][x]:
                         self.map[-1].append(Food(x, y))
+                        Food.num+=1
                     elif txt[y][x] == "+":
                         self.map[-1].append(Bonus(x, y))
+                    elif txt[y][x] == "%":
+                        self.map[-1].append(eatable_wall(x,y))
+                    elif txt[y][x] == "*":
+                        eatable_wall.isfood = 1
+                        self.map[-1].append(eatable_wall(x,y))
                     elif txt[y][x] == "&":
                         self.map[-1].append(EatBonus(x, y))
                     elif txt[y][x] == "G":
                         Ghost.ghosts.append(Ghost(x ,y))
+                        self.map[-1].append(None)
                     else:
                         self.map[-1].append(None)
         def draw(self, screen):
@@ -255,6 +305,11 @@ def process_events(events, packman):
     for event in events:
         if (event.type == QUIT) or (event.type == KEYDOWN and event.key == K_ESCAPE):
             sys.exit(0)
+        #elif event.type == K_ESCAPE:
+         #   pacman.direction = 0
+            for g in Ghost.ghosts:
+                g.direction = 0
+
         elif event.type == KEYDOWN:
             if event.key == K_LEFT:
                 packman.direction = 3
