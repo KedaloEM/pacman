@@ -4,10 +4,13 @@ from pygame.locals import *
 from math import floor
 import random
 
+tile_size = 32
+map_size = 16
 
-def init_window():
+
+def init_window():  # Generating the window
     pygame.init()
-    pygame.display.set_mode((512, 512))
+    pygame.display.set_mode((map_size * tile_size, map_size * tile_size))
     pygame.display.set_caption('Pacman')
 
 
@@ -21,21 +24,19 @@ def draw_background(scr, img=None):
 
 
 class GameObject(pygame.sprite.Sprite):
-    def __init__(self, img, x, y, tile_size, map_size):
+    def __init__(self, img, x, y):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load(img)
         self.screen_rect = None
         self.x = 0
         self.y = 0
         self.tick = 0
-        self.tile_size = tile_size
-        self.map_size = map_size
         self.set_coord(x, y)
 
     def set_coord(self, x, y):
         self.x = x
         self.y = y
-        self.screen_rect = Rect(floor(x) * self.tile_size, floor(y) * self.tile_size, self.tile_size, self.tile_size )
+        self.screen_rect = Rect(floor(x) * tile_size, floor(y) * tile_size, tile_size, tile_size)
 
     def game_tick(self):
         self.tick += 1
@@ -45,28 +46,64 @@ class GameObject(pygame.sprite.Sprite):
 
 
 class Ghost(GameObject):
-    ghosts = []
-    def __init__(self, x, y, tile_size, map_size):
-        GameObject.__init__(self, './resources/ghost.png', x, y, tile_size, map_size)
+    ghosts = []  # massiv of ghosts
+
+    def __init__(self, x, y):
+        GameObject.__init__(self, './resources/ghost.png', x, y)
         self.direction = 0
-        self.velocity = 4.0 / 10.0
+        self.velocity = 3.5 / 10.0
+
+    @property
+    def intellect(self):
+        x, y = int(self.x), int(self.y)
+        if y == int(pacman.y):
+            for X in range(x, 16):
+                if isinstance(MAP.map[y][X], Wall):
+                    break
+                if X == int(pacman.x):
+                    return 1 if not EatBonus.eat_bonus \
+                        else 3
+            for X in reversed(range(x)):
+                if isinstance(MAP.map[y][X], Wall):
+                    break
+                if X == int(pacman.x):
+                    return 3 if not EatBonus.eat_bonus \
+                        else 1
+        if x == int(pacman.x):
+            for Y in range(y, 16):
+                if isinstance(MAP.map[Y][x], Wall):
+                    break
+                if Y == int(pacman.y):
+                    return 2 if not EatBonus.eat_bonus \
+                        else 4
+            for Y in reversed(range(y)):
+                if isinstance(MAP.map[Y][x], Wall):
+                    break
+                if Y == int(pacman.y):
+                    return 4 if not EatBonus.eat_bonus \
+                        else 2
 
     def game_tick(self):
         super(Ghost, self).game_tick()
+
         if self.tick % 20 == 0 or self.direction == 0:
             self.direction = random.randint(1, 4)
+
+        decision = self.intellect
+        if decision:
+            self.direction = decision
 
         if self.direction == 1:
             if not is_wall(floor(self.x + self.velocity), self.y):
                 self.x += self.velocity
-            if self.x >= self.map_size-1:
-                self.x = self.map_size-1
+            if self.x >= map_size - 1:
+                self.x = map_size - 1
                 self.direction = random.randint(1, 4)
         elif self.direction == 2:
-            if not is_wall(self.x, floor(self.y+self.velocity)):
+            if not is_wall(self.x, floor(self.y + self.velocity)):
                 self.y += self.velocity
-            if self.y >= self.map_size-1:
-                self.y = self.map_size-1
+            if self.y >= map_size - 1:
+                self.y = map_size - 1
                 self.direction = random.randint(1, 4)
         elif self.direction == 3:
             if not is_wall(floor(self.x - self.velocity), self.y):
@@ -75,88 +112,260 @@ class Ghost(GameObject):
                 self.x = 0
                 self.direction = random.randint(1, 4)
         elif self.direction == 4:
-            if not is_wall(self.x, floor(self.y-self.velocity)):
+            if not is_wall(self.x, floor(self.y - self.velocity)):
                 self.y -= self.velocity
             if self.y <= 0:
                 self.y = 0
                 self.direction = random.randint(1, 4)
+        if floor(pacman.x) == floor(self.x) and floor(pacman.y) == floor(self.y) and EatBonus.eat_bonus:
+            Ghost.ghosts.remove(self)
+
+            pacman.score += 2
+        elif floor(pacman.x) == floor(self.x) and floor(pacman.y) == floor(self.y):
+            print('You lose! Your score is ', str(pacman.score))
+            exit()
         self.set_coord(self.x, self.y)
 
 
+
+class StupidGhost (GameObject):
+    stupidghosts = []  # massiv of ghosts
+
+    def __init__(self, x, y):
+        GameObject.__init__(self, './resources/ghost.png', x, y)
+        self.direction = 0
+        self.velocity = 3.5 / 10.0
+
+    def game_tick(self):
+        super(StupidGhost, self).game_tick()
+
+        if self.tick % 20 == 0 or self.direction == 0:
+            self.direction = random.randint(1, 4)
+
+
+        if self.direction == 1:
+            if not is_wall(floor(self.x + self.velocity), self.y):
+                self.x += self.velocity
+            if self.x >= map_size - 1:
+                self.x = map_size - 1
+                self.direction = random.randint(1, 4)
+        elif self.direction == 2:
+            if not is_wall(self.x, floor(self.y + self.velocity)):
+                self.y += self.velocity
+            if self.y >= map_size - 1:
+                self.y = map_size - 1
+                self.direction = random.randint(1, 4)
+        elif self.direction == 3:
+            if not is_wall(floor(self.x - self.velocity), self.y):
+                self.x -= self.velocity
+            if self.x <= 0:
+                self.x = 0
+                self.direction = random.randint(1, 4)
+        elif self.direction == 4:
+            if not is_wall(self.x, floor(self.y - self.velocity)):
+                self.y -= self.velocity
+            if self.y <= 0:
+                self.y = 0
+                self.direction = random.randint(1, 4)
+        if floor(pacman.x) == floor(self.x) and floor(pacman.y) == floor(self.y) and EatBonus.eat_bonus:
+            StupidGhost.stupidghost.remove(self)
+
+            pacman.score += 2
+        elif floor(pacman.x) == floor(self.x) and floor(pacman.y) == floor(self.y):
+            print('You lose! Your score is ', str(pacman.score))
+            exit()
+        self.set_coord(self.x, self.y)
+
+
+
 class Pacman(GameObject):
-    def __init__(self, x, y, tile_size, map_size):
-        GameObject.__init__(self, './resources/pacman.png', x, y, tile_size, map_size)
+    def __init__(self, x, y):
+        GameObject.__init__(self, './resources/pacman.png', x, y)
         self.direction = 0
         self.velocity = 4.0 / 10.0
+        self.score = 0
+
+    def __get_direction(self):
+        return self.__direction
+
+    def __set_direction(self, d):
+        self.__direction = d
+        if d == 1:
+            self.image = pygame.image.load('./resources/pacman_right.png')
+        elif d == 2:
+            self.image = pygame.image.load('./resources/pacman_down.png')
+        elif d == 3:
+            self.image = pygame.image.load('./resources/pacman_left.png')
+        elif d == 4:
+            self.image = pygame.image.load('./resources/pacman_up.png')
+        elif d != 0:
+            raise ValueError("invalid direction detected")
+
+    direction = property(__get_direction, __set_direction)
 
     def game_tick(self):
         super(Pacman, self).game_tick()
         if self.direction == 1:
             if not is_wall(floor(self.x + self.velocity), self.y):
                 self.x += self.velocity
-            if self.x >= self.map_size-1:
-                self.x = self.map_size-1
+            if self.x >= map_size - 1:
+                self.x = map_size - 1
         elif self.direction == 2:
-            if not is_wall(self.x, floor(self.y+self.velocity)):
+            if not is_wall(self.x, floor(self.y + self.velocity)):
                 self.y += self.velocity
-            if self.y >= self.map_size-1:
-                self.y = self.map_size-1
+            if self.y >= map_size - 1:
+                self.y = map_size - 1
         elif self.direction == 3:
             if not is_wall(floor(self.x - self.velocity), self.y):
                 self.x -= self.velocity
             if self.x <= 0:
                 self.x = 0
         elif self.direction == 4:
-            if not is_wall(self.x, floor(self.y-self.velocity)):
+            if not is_wall(self.x, floor(self.y - self.velocity)):
                 self.y -= self.velocity
             if self.y <= 0:
                 self.y = 0
 
         self.set_coord(self.x, self.y)
 
-class Food(GameObject):
-    def __init__(self, x, y, tile_size, map_size):
-        GameObject.__init__(self, './resources/pig.png', x,y,tile_size,map_size)
+        if isinstance(MAP.map[int(self.y)][int(self.x)], Food):  # checking meeting pacman with objects
+            MAP.map[int(self.y)][int(self.x)] = None
+            self.score += 1
+            Food.num -= 1
+            if Food.num == 0:
+                print('WINNER Score:', str(pacman.score))
+                exit()
+
+        if isinstance(MAP.map[int(self.y)][int(self.x)], Bonus):
+            MAP.map[int(self.y)][int(self.x)] = None
+            pacman.velocity = 6.5 / 10.0
+        if isinstance(MAP.map[int(self.y)][int(self.x)], EatBonus) == True:
+            MAP.map[int(self.y)][int(self.x)] = None
+            EatBonus.eat_bonus = 1
+        if isinstance(MAP.map[int(self.y)][int(self.x)], EatableWall) == True:
+            MAP.map[int(self.y)][int(self.x)] = None
+            if EatableWall.isfood == 1:
+                MAP.map[-1].append(Food(self.x, self.y))
+                Food.append(self.x, self.y)
+
+
+def draw_ghosts(screen):
+    for g in Ghost.ghosts:
+        g.draw(screen)
+    for g in StupidGhost.stupidghosts:
+        g.draw(screen)
+
+
+def tick_ghosts():
+    for g in Ghost.ghosts:
+        g.game_tick()
+    for g in StupidGhost.stupidghosts:
+        g.game_tick()
+
+
+class EatableWall(GameObject):
+    isfood = 0
+
+    def __init__(self, x, y):
+        GameObject.__init__(self, './resources/wall.png', x, y)
+
     def game_tick(self):
-        super(Food,self).game_tick()
+        super(EatableWall, self).game_tick()
+
+
+def create_eatable_walls():
+    EatableWall.w = [EatableWall(1, 1)]
+
 
 class Wall(GameObject):
-    def __init__(self, x, y, tile_size, map_size):
-        GameObject.__init__(self, './resources/wall.png', x, y, tile_size, map_size)
+    def __init__(self, x, y):
+        GameObject.__init__(self, './resources/wall.png', x, y)
+
     def game_tick(self):
         super(Wall, self).game_tick()
 
-def create_walls(ts,ms):
-    Wall.w = [Wall(0,1,ts,ms), Wall(1,1,ts,ms), Wall(2,1,ts,ms), Wall(3,1,ts,ms), Wall(4,1,ts,ms), Wall(5,1,ts,ms)]
+
+def create_walls():
+    EatableWall.w = [EatableWall(1, 1)]
+
+
+def draw_eatable_walls(screen):
+    for w in EatableWall.w:
+        GameObject.draw(w, screen)
+
 
 def is_wall(x, y):
-    for w in Wall.w:
-        if (int(w.x), int(w.y)) == (int(x), int(y)):
-            return True
-    return False
+    return isinstance(MAP.map[int(y)][int(x)], Wall)
+
 
 def draw_walls(screen):
     for w in Wall.w:
-        GameObject.draw(w,screen)
+        GameObject.draw(w, screen)
+
+
+class Food(GameObject):
+    num = 0
+
+    def __init__(self, x, y):
+        GameObject.__init__(self, './resources/food.png', x, y)
+
+
+class Bonus(GameObject):
+    def __init__(self, x, y):
+        GameObject.__init__(self, './resources/bonus.png', x, y)
+
+
+class EatBonus(GameObject):
+    eat_bonus = None
+
+    def __init__(self, x, y):
+        GameObject.__init__(self, './resources/eat.png', x, y)
+
 
 class Map:
-        def __init__(self, x, y):
-                self.map = [ [list()]*x for i in range(y) ]
+    def __init__(self, filename):
+        self.map = []
+        f = open(filename, 'r')
+        txt = f.readlines()
+        f.close()
+        for y in range((map_size)):
+            self.map.append([])
+            for x in range((map_size)):
+                if '#' in txt[y][x]:
+                    self.map[-1].append(Wall(x, y))  # Filling the map according to the symbols in file
+                elif '.' in txt[y][x]:
+                    self.map[-1].append(Food(x, y))
+                    Food.num += 1
+                elif txt[y][x] == "+":
+                    self.map[-1].append(Bonus(x, y))
+                elif txt[y][x] == "%":
+                    self.map[-1].append(EatableWall(x, y))
+                elif txt[y][x] == "*":
+                    EatableWall.isfood = 1
+                    self.map[-1].append(EatableWall(x, y))
+                elif txt[y][x] == "&":
+                    self.map[-1].append(EatBonus(x, y))
+                elif txt[y][x] == "G":
+                    Ghost.ghosts.append(Ghost(x, y))
+                    self.map[-1].append(None)
+                elif txt[y][x] == "S":
+                    StupidGhost.stupidghosts.append(StupidGhost(x, y))
+                    self.map[-1].append(None)
+                else:
+                    self.map[-1].append(None)
 
-        # Функция возвращает список обьектов в данной точке карты
-        def get(self,x,y):
-                return self.map[x][y]
-
-
-
-
-
+    def draw(self, screen):
+        for y in range(len(self.map)):
+            for x in range(len(self.map[y])):
+                if self.map[y][x]:
+                    self.map[y][x].draw(screen)  # draw, if smth is in that square x*y
 
 
 def process_events(events, packman):
     for event in events:
         if (event.type == QUIT) or (event.type == KEYDOWN and event.key == K_ESCAPE):
             sys.exit(0)
+
         elif event.type == KEYDOWN:
             if event.key == K_LEFT:
                 packman.direction = 3
@@ -172,24 +381,20 @@ def process_events(events, packman):
 
 if __name__ == '__main__':
     init_window()
-    tile_size = 32
-    map_size = 16
-    ghost = Ghost(0, 0, tile_size, map_size)
-    ghost1 = Ghost(0, 3, tile_size, map_size)
-    create_walls(tile_size,map_size)
-    pacman = Pacman(5, 5, tile_size, map_size)
-    background = pygame.image.load("./resources/background.png")
+
+    global MAP
+    MAP = Map('map.txt')
+    pacman = Pacman(13, 5)
+    background = pygame.image.load("./resources/background1.png")
     screen = pygame.display.get_surface()
 
     while 1:
         process_events(pygame.event.get(), pacman)
-        pygame.time.delay(100)
-        ghost.game_tick()
-        ghost1.game_tick()
+        pygame.time.delay(50)
+        tick_ghosts()
         pacman.game_tick()
         draw_background(screen, background)
         pacman.draw(screen)
-        ghost.draw(screen)
-        ghost1.draw(screen)
-        draw_walls(screen)
+        draw_ghosts(screen)
+        MAP.draw(screen)
         pygame.display.update()
