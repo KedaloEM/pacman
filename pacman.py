@@ -7,19 +7,17 @@ import random
 tile_size = 32
 map_size = 16
 
-'''initialisation of the window'''
 
 
 def init_window():  # Generating the window
+    """initialisation of the window"""
     pygame.init()
     pygame.display.set_mode((map_size * tile_size, map_size * tile_size))
     pygame.display.set_caption('Pacman')
 
 
-'''Function with pygame method Surface, which draws the window'''
-
-
 def draw_background(scr, img=None):  # Drawing the background
+    """Function with pygame method Surface, which draws the window"""
     if img:
         scr.blit(img, (0, 0))
     else:
@@ -28,11 +26,10 @@ def draw_background(scr, img=None):  # Drawing the background
         scr.blit(bg, (0, 0))
 
 
-'''Common class, which is the origin for all object classes (Pacman, Ghosts, State objects)'''
 
 
-class GameObject(
-    pygame.sprite.Sprite):
+class GameObject(pygame.sprite.Sprite):
+    """Common class, which is the origin for all object classes (Pacman, Ghosts, State objects)"""
     def __init__(self, img, x, y):
         pygame.sprite.Sprite.__init__(self)
         self.image = pygame.image.load(img)
@@ -65,7 +62,7 @@ class Ghost(GameObject):
         self.direction = 0
         self.velocity = 3.5 / 10.0
 
-    @property
+
     def intellect(self):  # AI of "clever ghosts"
         x, y = int(self.x), int(self.y)
         if y == int(pacman.y):
@@ -88,7 +85,7 @@ class Ghost(GameObject):
                 if Y == int(pacman.y):
                     return 2 if not EatBonus.eat_bonus \
                         else 4
-            for Y in reversed(range(y)):
+            for Y in range(y, -1, -1):
                 if isinstance(MAP.map[Y][x], Wall):
                     break
                 if Y == int(pacman.y):
@@ -104,6 +101,15 @@ class Ghost(GameObject):
         decision = self.intellect
         if decision:  # clever ghosts move according to the def "Intellect and their initial "direction", when ghost meets the wall, it stopps"
             self.direction = decision
+
+        '''dx, dy = calculate_motion_for_velocity_and_direction(self.direction, self.velocity)
+        new_point = floor(x + dx), floor(y + dy)
+        if not is_wall(new_point):
+            self.x += dx
+            self.y += dy
+        else:
+            direction = choose_free_direction(MAP, floor(self.x), floor(self.y))'''
+        #FIXME: Should
 
         if self.direction == 1:
             if not is_wall(floor(self.x + self.velocity), self.y):
@@ -182,7 +188,7 @@ class StupidGhost(GameObject):
                 self.y = 0
                 self.direction = random.randint(1, 4)
         if floor(pacman.x) == floor(self.x) and floor(pacman.y) == floor(self.y) and EatBonus.eat_bonus:
-            StupidGhost.stupidghost.remove(self)
+            StupidGhost.stupidghosts.remove(self)
 
             pacman.score += 2
         elif floor(pacman.x) == floor(self.x) and floor(pacman.y) == floor(self.y):
